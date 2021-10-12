@@ -5,4 +5,4 @@ require_relative 'time_formatter'
 
 # use TimeFormatter
 # use AppLogger
-run TimeFormatter.new
+run App.new
