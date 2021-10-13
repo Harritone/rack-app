@@ -1,44 +1,37 @@
 require_relative 'time_formatter'
 class App
-  class PathError < StandardError
-    def initialize(msg)
-      super(msg)
-    end
-
-    def status
-      404
-    end
-  end
-
   def call(env)
-    @req = Rack::Request.new(env)
-    init_response
-    perform_format
-    @res.finish
+    req = Rack::Request.new(env)
+    res = Rack::Response.new
+    body, status = perform_format(req)
+    perform_response(res, body, status)
   end
 
   private
 
-  def init_response
-    @res = Rack::Response.new
-    @res.headers['Content-Type'] = 'text/plain'
+  def handle_method_and_path(req)
+    return ["Not found\n"] unless req.get? && req.path == '/time'
+    return ["Should match the pattern \"format=\"\n"] unless req.params['format']
+    # []
   end
 
-  def handle_method_and_path
-    raise PathError.new("Not found\n") unless @req.get? && @req.path == '/time'
-    raise PathError.new('Should match the pattern "format="') unless @req.params['format']
+  def perform_format(req)
+    errors = handle_method_and_path(req)
+    if errors&.any?
+      [errors, 404]
+    else
+      params = req.params['format']
+      formatter = TimeFormatter.new(params)
+      body = formatter.perform
+      status = formatter.success? ? 200 : 400
+      [body, status]
+    end
   end
 
-  def perform_format
-    handle_method_and_path
-    params = @req.params['format']
-    formatter = TimeFormatter.new(params)
-    @res.body = formatter.perform
-  rescue TimeFormatter::UnknownFormatError => e
-    @res.body = [e.message]
-    @res.status = 400
-  rescue PathError => e
-    @res.status = e.status
-    @res.body = [e.message]
+  def perform_response(res, body, status)
+    res.body = body
+    res.status = status
+    res.headers['Content-Type'] = 'text/plain'
+    res.finish
   end
 end

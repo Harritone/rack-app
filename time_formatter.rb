@@ -8,12 +8,6 @@ class TimeFormatter
     'second' => '%S'
   }.freeze
 
-  class UnknownFormatError < StandardError
-    def initialize(msg)
-      super(msg)
-    end
-  end
-
   def initialize(params)
     @params = params.split(',')
     @valid_formats = []
@@ -29,13 +23,12 @@ class TimeFormatter
       end
     end
 
-    raise UnknownFormatError.new("Unknown time format #{@invalid_formats}\n") unless success?
+    return ["Unknown time format #{@invalid_formats}\n"] unless success?
+
     ["#{Time.now.strftime(@valid_formats.join('-'))}\n"]
   end
 
-  private
-
   def success?
-    @invalid_formats.length.zero?
+    @invalid_formats.empty?
   end
 end
