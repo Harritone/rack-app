@@ -1,25 +1,37 @@
+require_relative 'time_formatter'
 class App
   def call(env)
-    # p self.class
-    # perform_request
-    [status, headers, body]
+    req = Rack::Request.new(env)
+    res = Rack::Response.new
+    body, status = perform_format(req)
+    perform_response(res, body, status)
   end
 
   private
 
-  def perform_request
-    sleep rand(2..3)
+  def handle_method_and_path(req)
+    return ["Not found\n"] unless req.get? && req.path == '/time'
+    return ["Should match the pattern \"format=\"\n"] unless req.params['format']
+    # []
   end
 
-  def status
-    200
+  def perform_format(req)
+    errors = handle_method_and_path(req)
+    if errors&.any?
+      [errors, 404]
+    else
+      params = req.params['format']
+      formatter = TimeFormatter.new(params)
+      body = formatter.perform
+      status = formatter.success? ? 200 : 400
+      [body, status]
+    end
   end
 
-  def headers
-    {'Content-Type' => 'text/plain'}
-  end
-
-  def body
-    ["Welcome aboard!\n"]
+  def perform_response(res, body, status)
+    res.body = body
+    res.status = status
+    res.headers['Content-Type'] = 'text/plain'
+    res.finish
   end
 end
